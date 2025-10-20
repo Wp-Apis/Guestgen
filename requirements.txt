@@ -1,0 +1,7 @@
+requests
+pymongo
+pycryptodome
+protobuf-decoder
+colorama
+urllib3
+free-proxy
