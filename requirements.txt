@@ -4,3 +4,4 @@ pycryptodome
 protobuf-decoder
 colorama
 urllib3
+Flask
