@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import threading
 from datetime import datetime
 import hmac
 import hashlib
@@ -14,9 +15,13 @@ from protobuf_decoder.protobuf_decoder import Parser
 import codecs
 import urllib3
 from pymongo import MongoClient
+from flask import Flask, jsonify
 
 # Disable only the InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Flask App
+app = Flask(__name__)
 
 # MongoDB setup
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
@@ -533,7 +538,8 @@ def get_fresh_proxy():
         print(f"[ERROR] Erro ao buscar proxies da API: {e}")
         return []
 
-def main():
+# Função principal de geração de contas, executada em uma thread separada
+def account_generation_task():
     target_region = "BR"
     proxy_list = []
     proxy_index = 0
@@ -578,5 +584,18 @@ def main():
         proxy_index = (proxy_index + 1) % len(proxy_list)
         time.sleep(5) # Delay entre as tentativas para evitar bloqueios
 
+# Rota para verificar a saúde da aplicação
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "online", "message": "Account generator is running"}), 200
+
 if __name__ == "__main__":
-    main()
+    # Inicia a tarefa de geração de contas em uma thread separada
+    thread = threading.Thread(target=account_generation_task)
+    thread.daemon = True # Permite que a thread seja encerrada quando o programa principal terminar
+    thread.start()
+
+    # Inicia o servidor Flask
+    # Render usa a variável de ambiente PORT, ou padroniza para 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
